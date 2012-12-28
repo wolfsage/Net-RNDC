@@ -10,4 +10,8 @@ To play with Net::RNDC (Uses Dist::Zilla):
 
   dzil build
 
+WARNING: Error checking is very lax right now, so if you're key is wrong
+         or BIND sends a weird response, you'll get some very interesting
+         warnings. I hope to add tests and fix all of this soon :)
+
 -- Matthew Horsfall (alh)
