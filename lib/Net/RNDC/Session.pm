@@ -276,6 +276,8 @@ This package is intended to provide the logic for a RNDC session which is used
 to run a single command against a remote server and get a response. See 
 L<SESSION> below for a description of the RNDC client session logic.
 
+For simple use of the RNDC protocol, see L<Net::RNDC>.
+
 There is no socket logic here, that must be provided to this class through the 
 constructor in the various C<want_*> methods. This allows for 
 synchronous/asynchronous use with a little work.
@@ -288,7 +290,70 @@ To manage the entire process yourself, use L<Net::RNDC::Packet>.
 
 =head1 SESSION
 
-TBD
+An RNDC client session (where one is sending commands to a remote nameserver 
+expecting a response) contains 4 packets.
+
+All packets contain a timestamp/expiracy timestamp to denote a packet validity 
+window, as well as an HMAC-MD5 signature of the packets data using a shared 
+private key, and a serial number to identify the packet.
+
+=over 4
+
+=item 1
+
+  CLIENT->send(<opening packet>)
+
+The opening packet contains a '_data' section with an undef 'type'.
+
+=item 2
+
+  SERVER->send(<nonce packet>)
+
+The server response packet contains a 'nonce' integer which should be 
+copied into the next request.
+
+=item 3
+
+  CLIENT->send(<command packet>)
+
+The nonce should be included in the command packet in the '_ctrl' section, and 
+the command to be run on the remote section should be in the 'type' paramater of 
+the '_data' section.
+
+=item 4
+
+  SERVER->send(<response packet>)
+
+The response packet will contain an 'error' parameter in the '_data' section if 
+something went wrong, otherwise the response will be in the 'text' parameter of 
+the '_data' section.
+
+=back
+
+If at any time the remote end disconnects prematurely, this may indicate any of 
+the following (along with normal network issues):
+
+=over 4
+
+=item *
+
+The clocks are off
+
+=item *
+
+The key is incorrect
+
+=item *
+
+The window has expired
+
+=back
+
+=head1 SEE ALSO
+
+L<Net::RNDC> - Simple RNDC communication.
+
+L<Net::RNDC::Packet> - Low level RNDC packet manipulation.
 
 =head1 AUTHOR
 

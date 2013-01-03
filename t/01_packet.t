@@ -46,4 +46,16 @@ like($p->error,
 	qr/'Unknown data type 'SCALAR' in _value_towire'/,
 	"Unknown data type 'SCALAR' error");
 
+# Make sure a generated/parsed packet matches commands
+$p = Net::RNDC::Packet->new(key => 'aabc', data => { type => "status" });
+ok($p, "Got a packet");
+
+my $binary = $p->data;
+ok($binary, "Got binary representation of packet");
+
+my $parser = Net::RNDC::Packet->new(key => 'aabc');
+
+ok($parser->parse($binary), "Parsed binary representation of packet");
+is($parser->{data}{_data}{type}, 'status', "Parsed packet has correct command");
+
 done_testing;

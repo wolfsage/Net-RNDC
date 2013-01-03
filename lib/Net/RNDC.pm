@@ -264,6 +264,12 @@ L<do()> returns 0.
 Returns the last string response from a call to L<do()>, if any. Only set if 
 L<do()> returns 1.
 
+=head1 SEE ALSO
+
+L<Net::RNDC::Session> - Manage the 4-packet RNDC session
+
+L<Net::RNDC::Packet> - Low level RNDC packet manipulation.
+
 =head1 AUTHOR
 
 Matthew Horsfall (alh) <WolfSage@gmail.com>

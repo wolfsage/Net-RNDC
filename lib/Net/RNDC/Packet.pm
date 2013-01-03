@@ -487,6 +487,12 @@ Methods for modifying the different data parts of an RNDC message
 
 =back
 
+=head1 SEE ALSO
+
+L<Net::RNDC> - Simple RNDC communication.
+
+L<Net::RNDC::Session> - Manage the 4-packet RNDC session
+
 =head1 AUTHOR
 
 Matthew Horsfall (alh) <WolfSage@gmail.com>
