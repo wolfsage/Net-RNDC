@@ -4,9 +4,11 @@ use strict;
 use warnings;
 
 sub new {
-	my ($class, $error) = @_;
+	my ($class, $error, $level) = @_;
 
-	my (undef, $file, $line) = caller(1);
+	$level ||= 1;
+
+	my (undef, $file, $line) = caller($level);
 
 	return bless {
 		error => $error,

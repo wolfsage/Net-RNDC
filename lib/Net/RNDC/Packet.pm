@@ -79,12 +79,22 @@ sub new {
 sub parse {
 	my ($self, $data) = @_;
 
-	$self->{error} = '';
+	$self->_set_error('');
 
+	unless ($self->_cklen($data, 51)) {
+		return 0;
+	}
 	my $buff = substr($data, 51);
 
+	unless ($self->_cklen($data, 4)) {
+		return 0;
+	}
 	my $length = unpack('N', $data);
 	$data = substr($data, 4);
+
+	unless ($self->_cklen($data, $length)) {
+		return 0;
+	}
 
 	my $version = unpack('N', $data);
 	$data = substr($data, 4);
@@ -99,35 +109,52 @@ sub parse {
 		$check = $self->_sign($buff);
 	} catch {
 		my $err = $_;
+
 		if (UNIVERSAL::isa($err, 'Net::RNDC::Exception')) {
-			$self->{error} = $err->error;
+			$self->_set_error($err);
 		} else {
-			die $_;
+			die $err;
 		}
 	};
 
 	return 0 if $self->error;
 
 	if ($check ne $aauth) {
-		$self->{error} = "Couldn't validate response with provided key\n";
+		return $self->_set_error("Couldn't validate response with provided key\n");
 	}
 
 	try {
 		$self->{data} = _table_fromwire(\$buff);
 	} catch {
 		my $err = $_;
+
 		if (UNIVERSAL::isa($err, 'Net::RNDC::Exception')) {
-			$self->{error} = $err->error;
+			$self->_set_error($err);
 		} else {
-			die $_;
+			die $err;
 		}
 	};
 
 	return 0 if $self->error;
 
-	$self->{error} = $self->{data}->{_data}{err};
+	$self->_set_error($self->{data}->{_data}{err});
 
 	return $self->error ? 0 : 1;
+}
+
+sub _set_error {
+	my ($self, $error) = @_;
+
+	if (!$error) {
+		$self->{error} = '';
+	} elsif (UNIVERSAL::isa($error, 'Net::RNDC::Exception')) {
+		$self->{error} = $error->error;
+	} else {
+		my $e = Net::RNDC::Exception->new($error);
+		$self->{error} = $e->error;
+	}
+
+	return 0;
 }
 
 sub error {
@@ -139,7 +166,7 @@ sub error {
 sub data {
 	my ($self) = @_;
 
-	$self->{error} = '';
+	$self->_set_error('');
 
 	$self->{data}->{_ctrl}->{_tim} = time;
 	$self->{data}->{_ctrl}->{_exp} = time + 60;
@@ -158,10 +185,11 @@ sub data {
 		}, 'no_header');
 	} catch {
 		my $err = $_;
+
 		if (UNIVERSAL::isa($err, 'Net::RNDC::Exception')) {
-			$self->{error} = $err->error;
+			$self->_set_error($err);
 		} else {
-			die $_;
+			die $err;
 		}
 	};
 
@@ -211,9 +239,11 @@ sub _table_fromwire {
 	my %table;
 
 	while ($$wire) {
+		_cklen_d($$wire, 1);
 		my $key_len = unpack('c', $$wire);
 		$$wire = substr($$wire, 1);
 
+		_cklen_d($$wire, $key_len);
 		my $key = substr($$wire, 0, $key_len);
 		$$wire = substr($$wire, $key_len);
 
@@ -269,12 +299,15 @@ sub _list_towire {
 sub _value_fromwire {
 	my ($wire) = @_;
 
+	_cklen_d($$wire, 1);
 	my $msg_type = unpack('c', $$wire);
 	$$wire = substr($$wire, 1);
 
+	_cklen_d($$wire, 4);
 	my $len = unpack('N', $$wire);
 	$$wire = substr($$wire, 4);
 
+	_cklen_d($$wire, $len);
 	my $data = substr($$wire, 0, $len);
 	$$wire = substr($$wire, $len);
 
@@ -305,6 +338,26 @@ sub _value_towire {
 	} else {
 		die Net::RNDC::Exception->new(
 			"Unknown data type '$r' in _value_towire"
+		);
+	}
+}
+
+sub _cklen {
+	my ($self, $buff, $len) = @_;
+
+	unless (length $buff >= $len) {
+		$self->_set_error(Net::RNDC::Exception->new(
+			"Unexpected end of data reading buffer. (Expected $len more bytes at least)"
+		));
+	}
+}
+
+sub _cklen_d {
+	my ($buff, $len) = @_;
+
+	unless (length $buff >= $len) {
+		die Net::RNDC::Exception->new(
+			"Unexpected end of data reading buffer. (Expected $len more bytes at least)"
 		);
 	}
 }
