@@ -6,9 +6,23 @@ use warnings;
 
 use Carp qw(croak);
 
-use IO::Socket::INET;
-
 use Net::RNDC::Session;
+
+my $sock;
+
+BEGIN {
+	eval 'use IO::Socket::INET6;';
+
+	if ($@) {
+		eval 'use IO::Socket::INET;';
+
+		die $@ if $@;
+
+		$sock = 'IO::Socket::INET';
+	} else {
+		$sock = 'IO::Socket::INET6';
+	}
+}
 
 # Required for new()
 my @required_args = qw(
@@ -81,7 +95,7 @@ sub do {
 		key  => $key,
 	);
 
-	my $c = IO::Socket::INET->new(
+	my $c = $sock->new(
 		PeerAddr => "$host:$port",
 	);
 
