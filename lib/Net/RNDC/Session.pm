@@ -46,16 +46,16 @@ sub new {
 		}
 	}
 
+	unless (exists $args{is_client} || exists $args{is_server}) {
+		croak("Argument 'is_client' or 'is_server' must be defined");
+	}
+
 	for my $r (@required_subs, @optional_subs) {
 		next unless exists $args{$r};
 
 		unless ((ref $args{$r} || '') eq 'CODE') {
 			croak("Argument '$r' is not a code ref");
 		}
-	}
-
-	unless (exists $args{is_client} || exists $args{is_server}) {
-		croak("Argument 'is_client' or 'is_server' must be defined");
 	}
 
 	if (exists $args{is_client} && exists $args{is_server}) {
@@ -70,11 +70,6 @@ sub new {
 		$obj{is_client} = 1;
 	} else {
 		$obj{is_server} = 1;
-	}
-
-	# Soon?
-	if ($obj{is_server}) {
-		croak("Argument 'is_server' not yet supported");
 	}
 
 	my $obj = bless \%obj, $class;
@@ -158,6 +153,7 @@ sub _got_start {
 
 		return $self->_run_want('want_write', $packet->data, $packet);
 	} else {
+		# Server step 1: expect a packet with no data section
 		$self->_state('want_read');
 
 		return $self->_run_want('want_read');
@@ -170,15 +166,15 @@ sub _got_read {
 	if ($self->_is_client) {
 		my $packet = Net::RNDC::Packet->new(key => $self->_key);
 
+		if (!$packet->parse($data)) {
+			$self->_state('want_error');
+
+			return $self->_run_want('want_error', $packet->error);
+		}
+
 		if (! $self->_nonce) {
 			# Client step 2: Parse response, get nonce
 			$self->{nonce} = 1;
-
-			if (!$packet->parse($data)) {
-				$self->_state('want_error');
-
-				return $self->_run_want('want_error', $packet->error);
-			}
 
 			my $nonce = $packet->{data}->{_ctrl}{_nonce};
 
@@ -191,22 +187,68 @@ sub _got_read {
 
 			$self->_state('want_write');
 
-			return $self->_run_want('want_write', $packet2->data);
+			return $self->_run_want('want_write', $packet2->data, $packet2);
 		} else {
 			# Client step 4: Read response to command
-			if (!$packet->parse($data)) {
-				$self->_state('want_error');
-
-				return $self->_run_want('want_error', $packet->error);
-			}
-
 			my $response = $packet->{data}{_data}{text} || 'command success';
 
 			$self->_state('want_finish');
 
 			return $self->_run_want('want_finish', $response);
 		}
-	}		
+	} else {
+		my $packet = Net::RNDC::Packet->new(key => $self->_key);
+
+		if (!$packet->parse($data)) {
+			$self->_state('want_error');
+
+			return $self->_run_want('want_error', $packet->error);
+		}
+
+		if (! $self->_nonce) {
+			$self->{nonce} = 1;
+
+			my $nonce = int(rand(2**32));
+
+			$self->{_nonce_data} = $nonce;
+
+			my $challenge = Net::RNDC::Packet->new(
+				key => $self->_key,
+				nonce => $nonce,
+			);
+
+			$self->_state('want_write');
+
+			return $self->_run_want('want_write', $challenge->data, $challenge);
+		} else {
+			my $nonce = $self->{_nonce_data};
+
+			unless ($packet->{data}->{_ctrl}{_nonce}) {
+				$self->_state('want_error');
+
+				return $self->_run_want('want_error', "Client nonce not set");	
+			}
+
+			unless ($packet->{data}->{_ctrl}{_nonce} == $nonce) {
+				$self->_state('want_error');
+
+				return $self->_run_want('want_error', "Client nonce does not match");
+			}
+
+			my $response = Net::RNDC::Packet->new(
+				key => $self->_key,
+				data => {text => $self->_command},
+			);
+
+			$self->_state('want_write');
+
+			$self->_run_want('want_write', $response->data, $response);
+
+			$self->_state('want_finish');
+
+			$self->_run_want('want_finish');
+		}
+	}
 }
 
 sub _got_write {
@@ -214,6 +256,10 @@ sub _got_write {
 
 	# As a client, after every write we expect a read
 	if ($self->_is_client) {
+		$self->_state('want_read');
+
+		return $self->_run_want('want_read');
+	} elsif ($self->_is_server) {
 		$self->_state('want_read');
 
 		return $self->_run_want('want_read');
@@ -238,7 +284,7 @@ Net::RNDC::Session - Helper package to manage the RNDC 4-packet session
 
 =head1 SYNOPSIS
 
-To use synchronously:
+To use synchronously as a client:
 
   use IO::Socket::INET;
   use Net::RNDC::Session;
@@ -270,11 +316,21 @@ To use asynchronously (for example, with IO::Async):
 
 TBD
 
+To use as a server:
+
+TBD
+
+To use asynchronously as a server:
+
+TBD
+
 =head1 DESCRIPTION
 
-This package is intended to provide the logic for a RNDC session which is used 
-to run a single command against a remote server and get a response. See 
-L<SESSION> below for a description of the RNDC client session logic.
+This package is intended to provide the logic for an RNDC client session which 
+can used  to run a single command against a remote server and get a response.
+See L<SESSION> below for a description of the RNDC client session logic.
+
+This package also supports running sessions as an RNDC server.
 
 For simple use of the RNDC protocol, see L<Net::RNDC>.
 

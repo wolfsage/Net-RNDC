@@ -345,7 +345,7 @@ sub _value_towire {
 sub _cklen {
 	my ($self, $buff, $len) = @_;
 
-	unless (length $buff >= $len) {
+	unless ((length($buff) || 0) >= $len) {
 		$self->_set_error(Net::RNDC::Exception->new(
 			"Unexpected end of data reading buffer. (Expected $len more bytes at least)"
 		));
@@ -355,7 +355,7 @@ sub _cklen {
 sub _cklen_d {
 	my ($buff, $len) = @_;
 
-	unless (length $buff >= $len) {
+	unless ((length($buff) || 0) >= $len) {
 		die Net::RNDC::Exception->new(
 			"Unexpected end of data reading buffer. (Expected $len more bytes at least)"
 		);
