@@ -4,7 +4,7 @@ package Net::RNDC;
 use strict;
 use warnings;
 
-use Carp;
+use Carp qw(croak);
 
 use IO::Socket::INET;
 
@@ -48,7 +48,7 @@ sub _parse_args {
 sub _check_do_args {
 	my ($self, %args) = @_;
 
-	for my $r qw(key host) {
+	for my $r (qw(key host)) {
 		unless ($args{$r}) {
 			croak("Required argument '$r' is missing");
 		}
@@ -270,6 +270,6 @@ Matthew Horsfall (alh) <WolfSage@gmail.com>
 
 =head1 LICENSE
 
-You may distribute this code under the ssame terms as Perl itself.
+You may distribute this code under the same terms as Perl itself.
 
 =cut

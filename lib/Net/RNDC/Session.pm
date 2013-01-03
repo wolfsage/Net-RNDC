@@ -229,10 +229,6 @@ sub _run_want {
 	$ref->($self, @args);
 }
 
-sub DESTROY {
-	warn "Destroyed\n";
-}
-
 1;
 __END__
 
@@ -300,6 +296,6 @@ Matthew Horsfall (alh) <WolfSage@gmail.com>
 
 =head1 LICENSE
 
-You may distribute this code under the ssame terms as Perl itself.
+You may distribute this code under the same terms as Perl itself.
 
 =cut

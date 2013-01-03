@@ -3,6 +3,13 @@ package Net::RNDC::Packet;
 use strict;
 use warnings;
 
+use Net::RNDC::Exception;
+
+use Try::Tiny;
+
+use UNIVERSAL ();
+
+use Carp qw(croak);
 use Digest::HMAC_MD5;
 use MIME::Base64 qw(decode_base64);
 
@@ -17,6 +24,34 @@ my $serial = int(rand(2**32));
 
 sub new {
 	my ($class, %args) = @_;
+
+	my @required_args = qw(
+		key
+	);
+
+	my @optional_args = qw(
+		version
+		data
+		nonce
+	);
+
+	for my $r (@required_args) {
+		unless (exists $args{$r}) {
+			croak("Missing required argument '$r'");
+		}
+	}
+
+	if ($args{data} && (ref($args{data}) || '' ) ne 'HASH') {
+		croak("Argument 'data' must be a HASH");
+	}
+
+	if (exists $args{version} && ($args{version} || '') !~ /^\d+\z/) {
+		croak("Argument 'version' must be a number");
+	}
+
+	if (exists $args{nonce} && ($args{nonce} || '') !~ /^\d+\z/) {
+		croak("Argument 'nonce' must be a number");
+	}
 
 	my %object = (
 		key => $args{key},
@@ -54,28 +89,52 @@ sub parse {
 	my $version = unpack('N', $data);
 	$data = substr($data, 4);
 
-	$data = _table_fromwire(\$data);
+	my ($aauth, $check);
 
-	my $aauth = $data->{_auth}{hmd5};
+	try {
+		$data = _table_fromwire(\$data);
 
-	my $check = $self->_sign($buff);
+		$aauth = $data->{_auth}{hmd5};
+
+		$check = $self->_sign($buff);
+	} catch {
+		my $err = $_;
+		if (UNIVERSAL::isa($err, 'Net::RNDC::Exception')) {
+			$self->{error} = $err->error;
+		} else {
+			die $_;
+		}
+	};
+
+	return 0 if $self->error;
 
 	if ($check ne $aauth) {
-		$self->{error} = "Couldn't validate response against our key\n";
+		$self->{error} = "Couldn't validate response with provided key\n";
 	}
 
-	$self->{data} = _table_fromwire(\$buff);
+	try {
+		$self->{data} = _table_fromwire(\$buff);
+	} catch {
+		my $err = $_;
+		if (UNIVERSAL::isa($err, 'Net::RNDC::Exception')) {
+			$self->{error} = $err->error;
+		} else {
+			die $_;
+		}
+	};
+
+	return 0 if $self->error;
 
 	$self->{error} = $self->{data}->{_data}{err};
 
-	return $self->{error} ? 0 : 1;
+	return $self->error ? 0 : 1;
 }
 
 sub error {
 	my ($self) = @_;
 
-	return $self->{error} . "\n";
-}	
+	return $self->{error};
+}
 
 sub data {
 	my ($self) = @_;
@@ -85,15 +144,28 @@ sub data {
 	$self->{data}->{_ctrl}->{_tim} = time;
 	$self->{data}->{_ctrl}->{_exp} = time + 60;
 
-	my $udata = $self->_unsigned_data;
+	my ($udata, $cksum, $wire);
 
-	my $cksum = $self->_sign($udata);
+	try {
+		$udata = $self->_unsigned_data;
 
-	my $wire = _table_towire({
-		_auth => {
-			hmd5 => $cksum,
-		},
-	}, 'no_header');
+		$cksum = $self->_sign($udata);
+
+		$wire = _table_towire({
+			_auth => {
+				hmd5 => $cksum,
+			},
+		}, 'no_header');
+	} catch {
+		my $err = $_;
+		if (UNIVERSAL::isa($err, 'Net::RNDC::Exception')) {
+			$self->{error} = $err->error;
+		} else {
+			die $_;
+		}
+	};
+
+	return if $self->error;
 
 	$wire .= $udata;
 
@@ -213,7 +285,9 @@ sub _value_fromwire {
 	} elsif ($msg_type == ISCCC_CCMSGTYPE_LIST) {
 		return _list_fromwire(\$data);
 	} else {
-		warn "value_fromwrieWtf\n";
+		die Net::RNDC::Exception->new(
+			"Unknown message type '$msg_type' in _value_fromwire"
+		);
 	}
 }
 
@@ -229,7 +303,9 @@ sub _value_towire {
 	} elsif ($r eq 'binary') {
 		return _binary_towire($data);
 	} else {
-		warn "_value_towire WTF\n";
+		die Net::RNDC::Exception->new(
+			"Unknown data type '$r' in _value_towire"
+		);
 	}
 }
 
@@ -364,6 +440,6 @@ Matthew Horsfall (alh) <WolfSage@gmail.com>
 
 =head1 LICENSE
 
-You may distribute this code under the ssame terms as Perl itself.
+You may distribute this code under the same terms as Perl itself.
 
 =cut
