@@ -379,7 +379,7 @@ copied into the next request.
   CLIENT->send(<command packet>)
 
 The nonce should be included in the command packet in the '_ctrl' section, and 
-the command to be run on the remote section should be in the 'type' paramater of 
+the command to be run on the remote section should be in the 'type' parameter of 
 the '_data' section.
 
 =item 4

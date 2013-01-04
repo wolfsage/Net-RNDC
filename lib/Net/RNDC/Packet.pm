@@ -396,7 +396,7 @@ __END__
 
 Net::RNDC::Packet - RNDC Protocol V1 Packet Parsing and Generation
 
-=head1 SYNOSPSIS
+=head1 SYNOPSIS
 
 To send an RNDC command and get a response:
 
