@@ -1,0 +1,10 @@
+{{$NEXT}}
+
+ [BUG FIXES]
+
+ * Fix documentation for do(), reset error/response earlier in do().
+
+0.001 Thu, Jan 3, 2013
+
+ * First release!
+
