@@ -231,7 +231,8 @@ B<key> - The Base64 encoded HMAC-MD5 private key to use.
 
 =item *
 
-B<host> - The hostname/IP of the remote server to connect to.
+B<host> - The hostname/IP of the remote server to connect to. If 
+L<IO::Socket::INET6> is installed, IPv6 support will be enabled.
 
 =item *
 
