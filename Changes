@@ -1,10 +1,24 @@
 {{$NEXT}}
 
- [BUG FIXES]
+0.002 Fri, Jan 04, 2013
 
- * Fix documentation for do(), reset error/response earlier in do().
+  [BUG FIXES]
+
+  * Fix pod spelling errors and links
+
+  * Fix documentation for do(), reset error/response earlier in do().
+
+  [ENHANCEMENTS]
+
+  * Speed up Net::RNDC::Packet->parse() a bit
+
+  * Improve the minting process (dist.ini + tests)
+
+  * Document IPv6 support
+
+  * More tests
 
 0.001 Thu, Jan 3, 2013
 
- * First release!
+  * First release!
 
