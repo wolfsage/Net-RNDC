@@ -72,6 +72,8 @@ sub _check_do_args {
 sub do {
 	my ($self, $command, %override) = @_;
 
+	$self->{response} = $self->{error} = '';
+
 	my $host = $self->{host};
 	my $port = $self->{port};
 	my $key  = $self->{key};
@@ -104,8 +106,6 @@ sub do {
 
 		return 0;
 	}
-
-	$self->{response} = $self->{error} = '';
 
 	# Net::RNDC::Session does all of the work
 	my $sess = Net::RNDC::Session->new(
@@ -202,7 +202,7 @@ All arguments to new() are allowed in do:
   my $key = 'abcd';
 
   for my $s (qw(127.0.0.1 127.0.0.2)) {
-    if (!$rndc->do(key => $key, server => $s)) {
+    if (!$rndc->do('status', key => $key, host => $s)) {
       my $err = $rndc->error;
     } else {
       my $resp = $rndc->response;
