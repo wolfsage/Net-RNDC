@@ -81,14 +81,13 @@ sub parse {
 
 	$self->_set_error('');
 
-	unless ($self->_cklen($data, 51)) {
+	unless ($self->_cklen($data, 55)) {
 		return 0;
 	}
+
+	# Everything after first 51 bytes is what needs to be signed
 	my $buff = substr($data, 51);
 
-	unless ($self->_cklen($data, 4)) {
-		return 0;
-	}
 	my $length = unpack('N', $data);
 	$data = substr($data, 4);
 
@@ -98,6 +97,10 @@ sub parse {
 
 	my $version = unpack('N', $data);
 	$data = substr($data, 4);
+
+	unless ($version == 1) {
+		return $self->_set_error("Unknown protocol version '$version'");
+	}
 
 	my ($aauth, $check);
 
@@ -142,6 +145,7 @@ sub parse {
 	return $self->error ? 0 : 1;
 }
 
+# Set an error. Uses Net::RNDC::Exception to get file/line number
 sub _set_error {
 	my ($self, $error) = @_;
 
@@ -157,12 +161,14 @@ sub _set_error {
 	return 0;
 }
 
+# Return error string if any
 sub error {
 	my ($self) = @_;
 
 	return $self->{error};
 }
 
+# Return packet data in binary form
 sub data {
 	my ($self) = @_;
 
@@ -200,12 +206,14 @@ sub data {
 	return pack('N', length($wire) + 4) . pack('N', $self->{version}) . $wire;
 }
 
+# Return the table of data to be signed
 sub _unsigned_data {
 	my ($self) = @_;
 
 	return _table_towire($self->{data}, 'no_header');
 }
 
+# Sign data with our key, return digest
 sub _sign {
 	my ($self, $data) = @_;
 
@@ -216,6 +224,7 @@ sub _sign {
 	return $hmac->b64digest;
 }
 
+# Take a string from binary format and return it
 sub _binary_fromwire {
 	my ($wire) = @_;
 
@@ -225,6 +234,7 @@ sub _binary_fromwire {
 	return $data;
 }
 
+# Pack a string into its binary representation
 sub _binary_towire {
 	my ($data) = @_;
 
@@ -233,6 +243,7 @@ sub _binary_towire {
 	     . ($data // 'null');
 }
 
+# Take a table from binary format and return a hashref
 sub _table_fromwire {
 	my ($wire) = @_;
 
@@ -253,6 +264,7 @@ sub _table_fromwire {
 	return \%table;
 }
 
+# Pack a hashref into its binary representation
 sub _table_towire {
 	my ($data, $no_header) = @_;
 
@@ -272,6 +284,7 @@ sub _table_towire {
 	}
 }
 
+# Take a list from binary representation and return an arrayref
 sub _list_fromwire {
 	my ($wire) = @_;
 
@@ -283,6 +296,7 @@ sub _list_fromwire {
 	return \@list;
 }
 
+# Pack an arrayref into its binary representation
 sub _list_towire {
 	my ($data) = @_;
 
@@ -296,14 +310,15 @@ sub _list_towire {
 	return $msg_type . pack('N', length($list)) . $list;
 }
 
+# Take a value, whatever it may be, and unpack it into perl data types
 sub _value_fromwire {
 	my ($wire) = @_;
 
-	_cklen_d($$wire, 1);
+	_cklen_d($$wire, 5);
+
 	my $msg_type = unpack('c', $$wire);
 	$$wire = substr($$wire, 1);
 
-	_cklen_d($$wire, 4);
 	my $len = unpack('N', $$wire);
 	$$wire = substr($$wire, 4);
 
@@ -324,6 +339,7 @@ sub _value_fromwire {
 	}
 }
 
+# Take a perl data structure and pack it into binary format
 sub _value_towire {
 	my ($data) = @_;
 
@@ -342,22 +358,33 @@ sub _value_towire {
 	}
 }
 
+# Sets an error and returns 0 if the buff isn't at least $len bytes
+# unless ($self->_cklen($buff, $len)) {
+#	return 0;
+# }
 sub _cklen {
-	my ($self, $buff, $len) = @_;
+#	my ($self, $buff, $len) = @_;
 
-	unless ((length($buff) || 0) >= $len) {
-		$self->_set_error(Net::RNDC::Exception->new(
-			"Unexpected end of data reading buffer. (Expected $len more bytes at least)"
+	unless ((length($_[1]) || 0) >= $_[2]) {
+		$_[0]->_set_error(Net::RNDC::Exception->new(
+			"Unexpected end of data reading buffer. (Expected $_[2] more bytes at least)"
 		));
+
+		return 0;
 	}
+
+	return 1;
 }
 
+# Throws an exception if the buff isn't at least $len bytes
+#
+# _cklen_d($buff, $len)
 sub _cklen_d {
-	my ($buff, $len) = @_;
+#	my ($buff, $len) = @_;
 
-	unless ((length($buff) || 0) >= $len) {
+	unless ((length($_[0]) || 0) >= $_[1]) {
 		die Net::RNDC::Exception->new(
-			"Unexpected end of data reading buffer. (Expected $len more bytes at least)"
+			"Unexpected end of data reading buffer. (Expected $_[1] more bytes at least)"
 		);
 	}
 }

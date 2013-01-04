@@ -58,4 +58,9 @@ my $parser = Net::RNDC::Packet->new(key => 'aabc');
 ok($parser->parse($binary), "Parsed binary representation of packet");
 is($parser->{data}{_data}{type}, 'status', "Parsed packet has correct command");
 
+# Too short
+my $res = $parser->parse('cat');
+is($res, 0, 'Failed to parse bad string "cat"');
+like($parser->error, qr/Expected 55 more bytes at least/, "Expected 55 bytes at least");
+
 done_testing;
