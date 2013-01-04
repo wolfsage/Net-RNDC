@@ -248,7 +248,7 @@ B<port> - The port to connect to. Defaults to I<953>.
 
   $rndc->do($commands, %args);
 
-Connects to the remote nameserver configured in L<new()> or passed in to  
+Connects to the remote nameserver configured in L</new> or passed in to  
 B<%args> and sends the specified command.
 
 Returns 1 on success, 0 on failure.
@@ -263,21 +263,21 @@ B<$command> - The RNDC command to run. For example: C<status>.
 
 =back
 
-Optional Arguments - See L<new()> above.
+Optional Arguments - See L</new> above.
 
 =head3 error
 
   $rndc->error;
 
-Returns the last string error from a call to L<do()>, if any. Only set if 
-L<do()> returns 0.
+Returns the last string error from a call to L</do>, if any. Only set if 
+L</do> returns 0.
 
 =head3 response
 
   $rndc->response;
 
-Returns the last string response from a call to L<do()>, if any. Only set if 
-L<do()> returns 1.
+Returns the last string response from a call to L</do>, if any. Only set if 
+L</do> returns 1.
 
 =head1 SEE ALSO
 

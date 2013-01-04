@@ -328,7 +328,7 @@ TBD
 
 This package is intended to provide the logic for an RNDC client session which 
 can used  to run a single command against a remote server and get a response.
-See L<SESSION> below for a description of the RNDC client session logic.
+See L</SESSION> below for a description of the RNDC client session logic.
 
 This package also supports running sessions as an RNDC server.
 
@@ -338,9 +338,10 @@ There is no socket logic here, that must be provided to this class through the
 constructor in the various C<want_*> methods. This allows for 
 synchronous/asynchronous use with a little work.
 
-This package does generate and parse L<Net::RNDC::Packet>s, but the L<want_read> 
-and L<want_write> methods allow you to peak at this data before it's parsed and 
-before it's sent to the remote end to allow slightly more fine-grained control.
+This package does generate and parse L<Net::RNDC::Packet>s, but the 
+L</want_read> and L</want_write> methods allow you to peak at this data before 
+it's parsed and before it's sent to the remote end to allow slightly more 
+fine-grained control.
 
 To manage the entire process yourself, use L<Net::RNDC::Packet>.
 

@@ -495,7 +495,7 @@ wire.
 
 Parses data from the wire and populates the current packet with the information, 
 as well as verifies the data with the provided B<key> that was passed to the 
-constructor. Returns 1 on success, 0 on failure. Check L<error()> if there's a 
+constructor. Returns 1 on success, 0 on failure. Check L</error> if there's a 
 failure.
 
 =head3 error
