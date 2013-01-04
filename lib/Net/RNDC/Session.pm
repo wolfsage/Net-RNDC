@@ -223,6 +223,11 @@ sub _got_read {
 		} else {
 			my $nonce = $self->{_nonce_data};
 
+			# TODO: Add time/expiry checking
+			# Invalid: (_tim + clockskew < now || _tim - clockskew > now)
+			# Invalid: now > exp
+			# Also check serial?
+
 			unless ($packet->{data}->{_ctrl}{_nonce}) {
 				$self->_state('want_error');
 
