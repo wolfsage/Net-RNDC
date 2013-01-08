@@ -238,9 +238,13 @@ sub _binary_fromwire {
 sub _binary_towire {
 	my ($data) = @_;
 
+	if (!defined $data) {
+		$data = 'null';
+	}
+
 	return pack('c', ISCCC_CCMSGTYPE_BINARYDATA)
-	     . pack('N', length($data // 'null'))
-	     . ($data // 'null');
+	     . pack('N', length($data))
+	     . ($data);
 }
 
 # Take a table from binary format and return a hashref

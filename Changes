@@ -1,5 +1,11 @@
 {{$NEXT}}
 
+0.003 Tue, Jan 08, 2013
+
+  [BUG FIXES]
+
+  * Replace defined-or to work with older Perls (<5.10)
+
 0.002 Fri, Jan 04, 2013
 
   [BUG FIXES]
