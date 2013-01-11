@@ -123,7 +123,7 @@ sub parse {
 	return 0 if $self->error;
 
 	if ($check ne $aauth) {
-		return $self->_set_error("Couldn't validate response with provided key\n");
+		return $self->_set_error("Couldn't validate packet with provided key");
 	}
 
 	try {

@@ -1,5 +1,11 @@
 {{$NEXT}}
 
+  [ENHANCEMENTS]
+
+  * Allow consumers to pass in their own IO::Socket::INET-like object
+
+  * Add tests for Net::RNDC functionality
+
 0.003 Tue, Jan 08, 2013
 
   [BUG FIXES]

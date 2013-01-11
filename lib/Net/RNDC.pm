@@ -4,11 +4,13 @@ package Net::RNDC;
 use strict;
 use warnings;
 
+use UNIVERSAL ();
+
 use Carp qw(croak);
 
 use Net::RNDC::Session;
 
-my $sock;
+my $Sock;
 
 BEGIN {
 	eval 'use IO::Socket::INET6;';
@@ -18,9 +20,9 @@ BEGIN {
 
 		die $@ if $@;
 
-		$sock = 'IO::Socket::INET';
+		$Sock = 'IO::Socket::INET';
 	} else {
-		$sock = 'IO::Socket::INET6';
+		$Sock = 'IO::Socket::INET6';
 	}
 }
 
@@ -33,6 +35,7 @@ my @optional_args = qw(
 	key
 	host
 	port
+	sock
 );
 
 sub new {
@@ -48,11 +51,12 @@ sub _parse_args {
 
 	for my $r (@required_args) {
 		unless ($args{$r}) {
-			croak("Required argument '$r' is missing");
+			croak("Missing required argument '$r'");
 		}
 	}
 
 	$args{port} ||= 953;
+	$args{sock} ||= $Sock;
 
 	return map {
 		$_ => $args{$_}
@@ -64,9 +68,13 @@ sub _check_do_args {
 
 	for my $r (qw(key host)) {
 		unless ($args{$r}) {
-			croak("Required argument '$r' is missing");
+			croak("Missing required argument '$r'");
 		}
 	}
+
+	unless(UNIVERSAL::can($args{sock}, 'new')) {
+		croak("Package '$args{sock}' has no 'new' method");
+	}	
 }
 
 sub do {
@@ -77,24 +85,28 @@ sub do {
 	my $host = $self->{host};
 	my $port = $self->{port};
 	my $key  = $self->{key};
+	my $sock = $self->{sock};
 
 	if (%override) {
 		my %args = $self->_parse_args(
 			host => $host,
 			port => $port,
-			key => $key,
+			key  => $key,
+			sock => $sock,
 			%override,
 		);
 
 		$host = $args{host};
 		$port = $args{port};
 		$key  = $args{key};
+		$sock = $args{sock};
 	}
 
 	$self->_check_do_args(
 		host => $host,
 		port => $port,
 		key  => $key,
+		sock => $sock,
 	);
 
 	my $c = $sock->new(
@@ -102,9 +114,15 @@ sub do {
 	);
 
 	unless ($c) {
-		$self->{error} = "Failed to create a socket: $@ ($!)";
+		$self->{error} = "Failed to create a $sock: $@ ($!)";
 
 		return 0;
+	}
+
+	for my $meth (qw(send recv close)) {
+		unless (UNIVERSAL::can($c, $meth)) {
+			croak("Object returned from '$sock->new()' has no '$meth' method");
+		}
 	}
 
 	# Net::RNDC::Session does all of the work
@@ -237,6 +255,15 @@ L<IO::Socket::INET6> is installed, IPv6 support will be enabled.
 =item *
 
 B<port> - The port to connect to. Defaults to I<953>.
+
+=item *
+
+B<sock> - A package, like L<IO::Socket::INET>, that provides a C<new> function 
+which returns an object capable of performing C<send>, C<recv>, and C<close>, 
+and behaving similar to them. See C<< perldoc -f >> for each of the methods 
+above to see how they should behave. Defaults to L<IO::Socket::INET6> if 
+available, otherwise C<IO::Socket::INET>. The C<new> function should accept one 
+parameter - B<PeerAddr> - which will be a I<hostname:port> string.
 
 =back
 
