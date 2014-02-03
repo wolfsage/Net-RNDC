@@ -46,7 +46,7 @@ IE:
 
 =head1 DESCRIPTION
 
-This example script shows usage of L<Net::DNS>. It requires the rndc key for 
+This example script shows usage of L<Net::RNDC>. It requires the rndc key for 
 communicating with BIND, the hostname of the BIND to communicate with, and the 
 command in question.
 
